@@ -11,7 +11,9 @@ import {
   FileText, 
   PenTool, 
   MessageSquare,
-  LogOut
+  LogOut,
+  Menu,
+  X
 } from 'lucide-react';
 
 import Beranda from './components/Beranda';
@@ -29,6 +31,8 @@ export default function App() {
     return savedUser ? JSON.parse(savedUser) : null;
   });
   const [activeTab, setActiveTab] = useState('beranda');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -63,60 +67,118 @@ export default function App() {
     }
   };
 
+  const handleTabChange = (id: string) => {
+    setActiveTab(id);
+    setIsSidebarOpen(false);
+  };
+
   return (
-    <div className="flex h-screen w-full p-4 gap-4 overflow-hidden font-sans">
+    <div className="flex h-screen w-full bg-gray-100 overflow-hidden font-sans">
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <nav className="w-64 bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl flex flex-col overflow-hidden shrink-0 border border-white/20">
-        <div className="p-6 flex items-center gap-4 border-b border-gray-100/50">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-md">
-            M
+      <nav className={`
+        fixed md:static inset-y-0 left-0 z-50
+        flex flex-col bg-white shadow-xl border-r border-gray-200
+        transition-all duration-300 ease-in-out
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        ${isCollapsed ? 'md:w-20' : 'md:w-64 w-72'}
+      `}>
+        <div className={`p-4 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} border-b border-gray-100 h-20 shrink-0`}>
+          <div className={`flex items-center gap-3 ${isCollapsed ? 'hidden' : 'flex'}`}>
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md shrink-0">
+              M
+            </div>
+            <h1 className="text-xl font-bold text-gray-800 tracking-tight whitespace-nowrap">Madrasah App</h1>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Madrasah App</h1>
+          <button 
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="hidden md:flex p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+            title={isCollapsed ? "Perbesar Menu" : "Perkecil Menu"}
+          >
+            <Menu size={20} />
+          </button>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X size={20} />
+          </button>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1.5 no-scrollbar">
           {navItems.map(item => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-medium transition-all duration-200 ${
+                onClick={() => handleTabChange(item.id)}
+                title={isCollapsed ? item.label : undefined}
+                className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-4'} py-3.5 rounded-xl font-medium transition-all duration-200 ${
                   isActive 
                     ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100' 
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <Icon size={22} className={isActive ? 'text-blue-600' : 'text-gray-400'} />
-                {item.label}
+                <Icon size={22} className={`${isActive ? 'text-blue-600' : 'text-gray-400'} ${isCollapsed ? '' : 'mr-3'} shrink-0`} />
+                {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
               </button>
             );
           })}
         </div>
 
-        <div className="p-5 border-t border-gray-100/50">
-          <div className="flex items-center gap-3 px-4 py-3 bg-gray-50/80 rounded-2xl border border-gray-100 mb-3">
-            <div className="w-11 h-11 rounded-full bg-gray-200 overflow-hidden shrink-0 shadow-inner">
+        <div className="p-4 border-t border-gray-100">
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3 py-2.5'} bg-gray-50 rounded-xl border border-gray-100 mb-3 transition-all`}>
+            <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden shrink-0 shadow-inner">
               <img src={currentUser.picture} alt="Student" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
             </div>
-            <div className="overflow-hidden">
-              <p className="text-sm font-bold text-gray-800 truncate">{currentUser.name}</p>
-              <p className="text-xs text-gray-500 truncate font-medium">Kelas {currentUser.kelas}</p>
-            </div>
+            {!isCollapsed && (
+              <div className="overflow-hidden">
+                <p className="text-sm font-bold text-gray-800 truncate">{currentUser.name}</p>
+                <p className="text-xs text-gray-500 truncate font-medium">Kelas {currentUser.kelas}</p>
+              </div>
+            )}
           </div>
           <button 
             onClick={() => setCurrentUser(null)}
-            className="w-full py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+            title={isCollapsed ? "Keluar" : undefined}
+            className={`w-full py-2.5 flex items-center justify-center gap-2 text-sm font-bold text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors ${isCollapsed ? 'px-0' : ''}`}
           >
-            <LogOut size={16} /> Keluar
+            <LogOut size={18} className="shrink-0" /> 
+            {!isCollapsed && <span>Keluar</span>}
           </button>
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl overflow-hidden relative flex flex-col border border-white/20">
-        {renderContent()}
+      <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-gray-100 md:p-4">
+        {/* Mobile Header */}
+        <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm z-10 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md">
+              M
+            </div>
+            <h1 className="text-lg font-bold text-gray-800 tracking-tight">Madrasah App</h1>
+          </div>
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <Menu size={24} />
+          </button>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-hidden relative md:rounded-3xl md:shadow-xl md:border md:border-gray-200 bg-white flex flex-col">
+          {renderContent()}
+        </div>
       </main>
     </div>
   );
