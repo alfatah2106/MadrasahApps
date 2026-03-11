@@ -79,7 +79,7 @@ export default function PapanTulis() {
       </div>
 
       {/* Konten Utama - Split View */}
-      <div className="flex-1 flex p-4 gap-4 overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row p-2 md:p-4 gap-2 md:gap-4 overflow-hidden">
 
         {/* ================= PAPAN GURU (LIVE BOARD) ================= */}
         <div
