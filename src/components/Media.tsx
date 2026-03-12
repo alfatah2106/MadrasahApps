@@ -1,157 +1,151 @@
 import React, { useState, useEffect } from 'react';
-import { PlayCircle, Video, AlertCircle } from 'lucide-react';
+import { PlayCircle, Video, Search, AlertCircle } from 'lucide-react';
 
-// !!! GANTI LINK INI DENGAN URL WEB APP ISKA TUBE ANDA YANG BARU !!!
 const GAS_TUBE_URL = import.meta.env.VITE_GAS_MEDIA_URL || "";
+const CACHE_KEY = "iska_tube_cache";
+const CACHE_TIME = 24 * 60 * 60 * 1000; // 1 Hari dalam milidetik
 
 export default function Media() {
   const [mediaList, setMediaList] = useState([]);
   const [activeMedia, setActiveMedia] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const fetchMedia = async () => {
+    const fetchData = async () => {
+      // 1. Coba ambil data dari Cache terlebih dahulu
+      const cachedData = localStorage.getItem(CACHE_KEY);
+      if (cachedData) {
+        const { data, timestamp } = JSON.parse(cachedData);
+        const isExpired = Date.now() - timestamp > CACHE_TIME;
+
+        setMediaList(data);
+        setIsLoading(false);
+
+        // Jika data belum expired, tidak perlu fetch ulang
+        if (!isExpired) return;
+      }
+
+      // 2. Fetch data baru dari server (tetap jalan jika cache expired atau kosong)
       try {
-        setIsLoading(true);
-        setError(null);
-        
-        const response = await fetch(GAS_TUBE_URL, {
-          method: "GET",
-          redirect: "follow"
-        });
-        
-        if (!response.ok) throw new Error('Gagal terhubung ke server media.');
-        
+        const response = await fetch(GAS_TUBE_URL, { method: "GET", redirect: "follow" });
         const textData = await response.text();
-        
-        try {
-          const jsonData = JSON.parse(textData);
-          if (jsonData && jsonData.error) {
-             throw new Error("Pesan Server: " + jsonData.error);
-          }
-          setMediaList(jsonData);
-        } catch (e) {
-          throw new Error("Server tidak mengembalikan data yang valid. Pastikan URL benar dan sudah New Version.");
-        }
-        
+        const jsonData = JSON.parse(textData);
+
+        // 3. Simpan data baru ke State dan LocalStorage
+        setMediaList(jsonData);
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          data: jsonData,
+          timestamp: Date.now()
+        }));
+
+        setError(null);
       } catch (err) {
-        console.error(err);
-        setError(err.message || "Gagal memuat daftar media.");
+        console.error("Fetch error:", err);
+        if (!mediaList.length) setError("Gagal memuat daftar video.");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchMedia();
+    fetchData();
   }, []);
 
+  const filteredMedia = mediaList.filter(m =>
+    m.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="flex h-full bg-gray-50 overflow-hidden">
-      
-      {/* SIDEBAR KIRI - Daftar Video */}
-      <div className="w-full md:w-1/3 max-w-sm border-r border-gray-200 p-4 md:p-6 overflow-y-auto custom-scrollbar bg-white z-10 h-full flex flex-col">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-          <Video className="text-purple-600" /> Iska Tube
-        </h2>
+    <div className="flex flex-col h-screen bg-white overflow-hidden font-sans">
 
-        {/* State Loading */}
-        {isLoading && (
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600 mb-4"></div>
-            <p className="text-sm text-gray-500">Memuat video...</p>
+      {/* 1. SEARCH BAR AREA */}
+      <div className="p-3 md:p-4 border-b border-gray-100 flex justify-center bg-white z-20 shadow-sm">
+        <div className="relative w-full max-w-3xl flex">
+          <input
+            type="text"
+            placeholder="Cari materi Iska..."
+            className="w-full bg-gray-50 border border-gray-300 rounded-l-xl px-4 py-2 outline-none focus:border-purple-500 transition-all text-sm"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <button className="bg-gray-100 border border-l-0 border-gray-300 px-4 rounded-r-xl hover:bg-gray-200">
+            <Search size={18} className="text-gray-600" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col lg:flex-row overflow-hidden">
+
+        {/* 2. VIDEO PLAYER AREA (Optimasi Android 35vh) */}
+        <div className="w-full lg:flex-1 bg-black flex items-center justify-center relative h-[35vh] md:h-auto border-b border-gray-200 lg:border-b-0 shadow-inner">
+          {activeMedia ? (
+            <iframe
+              src={activeMedia.embedUrl}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={activeMedia.title}
+            ></iframe>
+          ) : (
+            <div className="text-center px-6">
+              <Video size={32} className="text-gray-800 mx-auto mb-2 opacity-40" />
+              <p className="text-gray-500 text-xs font-medium">Pilih video dari daftar di bawah</p>
+            </div>
+          )}
+        </div>
+
+        {/* 4. LIST DAFTAR VIDEO (Sidebar) */}
+        <div className="w-full lg:w-96 bg-white flex flex-col overflow-hidden shadow-2xl">
+          <div className="p-3 border-b border-gray-100 bg-gray-50/80 flex justify-between items-center shrink-0">
+            <h3 className="font-bold text-gray-800 text-sm tracking-tight">Daftar Materi</h3>
+            <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">
+                {filteredMedia.length} Video
+            </span>
           </div>
-        )}
 
-        {/* State Error */}
-        {error && !isLoading && (
-          <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 text-sm flex items-start gap-2">
-            <AlertCircle size={18} className="shrink-0 mt-0.5" />
-            <p>{error}</p>
-          </div>
-        )}
-
-        {/* List Video */}
-        {!isLoading && !error && (
-          <div className="space-y-3 pb-8">
-            {mediaList.length === 0 ? (
-              <p className="text-center text-gray-500 text-sm py-10">Belum ada video tersedia.</p>
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+            {isLoading && mediaList.length === 0 ? (
+              <div className="flex flex-col gap-2">
+                {[1,2,3,4,5].map(i => (
+                    <div key={i} className="h-16 bg-gray-100 animate-pulse rounded-lg" />
+                ))}
+              </div>
             ) : (
-              mediaList.map(m => (
-                <div 
-                  key={m.id} 
-                  onClick={() => setActiveMedia(m)} 
-                  className={`p-2.5 rounded-2xl cursor-pointer transition-all duration-200 flex gap-3 items-center ${
-                    activeMedia?.id === m.id 
-                      ? 'bg-purple-50 border border-purple-200 shadow-sm' 
-                      : 'hover:bg-gray-50 border border-transparent'
+              filteredMedia.map(m => (
+                <div
+                  key={m.id}
+                  onClick={() => setActiveMedia(m)}
+                  className={`flex gap-3 p-2 rounded-xl cursor-pointer transition-all border ${
+                      activeMedia?.id === m.id
+                      ? 'bg-purple-50 border-purple-200 shadow-sm'
+                      : 'hover:bg-gray-50 border-transparent'
                   }`}
                 >
-                  <div className="w-24 h-16 md:w-28 md:h-20 rounded-xl overflow-hidden shrink-0 bg-gray-200 shadow-sm relative">
-                    <img src={m.thumb} alt={m.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    {/* Ikon Play Kecil di atas Thumbnail */}
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                       <PlayCircle size={20} className="text-white opacity-80" fill="currentColor" />
+                  <div className="relative w-24 h-14 md:w-28 md:h-16 shrink-0 rounded-lg overflow-hidden bg-gray-200 shadow-sm">
+                    <img src={m.thumb} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" loading="lazy" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/5">
+                        <PlayCircle size={20} className={`text-white transition-opacity ${activeMedia?.id === m.id ? 'opacity-100' : 'opacity-0'}`} fill="currentColor" />
                     </div>
                   </div>
-                  <div className="overflow-hidden flex-1">
-                    <h4 className="font-semibold text-gray-800 text-sm md:text-base line-clamp-2 leading-tight mb-1">{m.title}</h4>
-                    <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] md:text-xs rounded-full font-medium uppercase tracking-wide">
-                      {m.category}
-                    </span>
+
+                  <div className="flex flex-col justify-center min-w-0">
+                    <h4 className={`text-[11px] md:text-xs font-bold line-clamp-2 leading-tight ${activeMedia?.id === m.id ? 'text-purple-700' : 'text-gray-800'}`}>
+                      {m.title}
+                    </h4>
+                    <span className="text-[9px] text-gray-400 mt-1 uppercase font-bold tracking-wider">{m.category}</span>
                   </div>
                 </div>
               ))
             )}
-          </div>
-        )}
-      </div>
 
-      {/* AREA UTAMA - Video Player */}
-      <div className="flex-1 p-4 md:p-8 flex flex-col items-center justify-center relative overflow-y-auto">
-        {activeMedia ? (
-          <div className="w-full max-w-4xl flex flex-col items-center">
-            {/* Player Container */}
-            <div className="w-full bg-black rounded-2xl md:rounded-3xl aspect-video shadow-2xl flex items-center justify-center text-white relative overflow-hidden">
-              {activeMedia.embedUrl ? (
-                <iframe 
-                  src={activeMedia.embedUrl} 
-                  className="absolute inset-0 w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                  allowFullScreen
-                  title={activeMedia.title}
-                ></iframe>
-              ) : (
-                <div className="text-center p-6">
-                  <AlertCircle size={48} className="mx-auto mb-4 text-red-400 opacity-80" />
-                  <p>Link video tidak valid atau tidak dapat diputar.</p>
-                </div>
-              )}
-            </div>
-            
-            {/* Detail Video Aktif */}
-            <div className="w-full mt-6 px-2">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">{activeMedia.title}</h1>
-              <div className="flex items-center gap-3 text-sm text-gray-600">
-                <span className="px-3 py-1 bg-white border border-gray-200 rounded-lg shadow-sm font-medium">
-                  {activeMedia.category}
-                </span>
-                <span>•</span>
-                <span>Sumber: {activeMedia.type}</span>
-              </div>
-            </div>
+            {!isLoading && filteredMedia.length === 0 && !error && (
+              <p className="text-center py-10 text-xs text-gray-400 font-medium">Video tidak ditemukan.</p>
+            )}
           </div>
-        ) : (
-          <div className="text-gray-400 flex flex-col items-center max-w-sm text-center">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6 shadow-inner">
-              <PlayCircle size={48} className="text-gray-300" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">Belum ada video dipilih</h3>
-            <p className="text-sm">Silakan pilih video dari daftar di sebelah kiri untuk mulai menonton secara langsung.</p>
-          </div>
-        )}
-      </div>
+        </div>
 
+      </div>
     </div>
   );
 }

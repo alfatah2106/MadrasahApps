@@ -92,8 +92,16 @@ export default function App() {
       `}>
         <div className={`p-4 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} border-b border-gray-100 h-20 shrink-0`}>
           <div className={`flex items-center gap-3 ${isCollapsed ? 'hidden' : 'flex'}`}>
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md shrink-0">
-              M
+            <div class="w-12 h-12 flex items-center justify-center shrink-0">
+              <div class="w-12 h-12 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md shrink-0 border border-gray-100 overflow-hidden">
+                  <img
+                    src="/favicon.png"
+                    alt="Madrasah Apps Logo"
+                    className="w-7 h-7 object-contain"
+                  />
+                </div>
+              </div>
             </div>
             <h1 className="text-xl font-bold text-gray-800 tracking-tight whitespace-nowrap">Madrasah App</h1>
           </div>
@@ -162,8 +170,12 @@ export default function App() {
         {/* Mobile Header */}
         <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm z-10 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md">
-              M
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md shrink-0 border border-gray-100 overflow-hidden">
+                  <img
+                    src="/favicon.png"
+                    alt="Madrasah Apps Logo"
+                    className="w-7 h-7 object-contain"
+                  />
             </div>
             <h1 className="text-lg font-bold text-gray-800 tracking-tight">Madrasah App</h1>
           </div>

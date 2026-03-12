@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Student } from '../types';
-import { BookOpen } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -14,18 +13,20 @@ export default function Login({ onLogin }: { onLogin: (s: Student) => void }) {
   const [kelas, setKelas] = useState('');
 
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    document.body.appendChild(script);
+    const loadGoogleScript = () => {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = initializeGoogle;
+      document.body.appendChild(script);
+    };
 
-    script.onload = () => {
+    const initializeGoogle = () => {
       if (window.google) {
         window.google.accounts.id.initialize({
           client_id: '142276774829-q7b6vicbq1hm1ltng7itehietn03l119.apps.googleusercontent.com',
           callback: (response: any) => {
-            // Decode JWT to get user info
             const payload = JSON.parse(atob(response.credential.split('.')[1]));
             setGoogleUser({
               name: payload.name,
@@ -34,15 +35,25 @@ export default function Login({ onLogin }: { onLogin: (s: Student) => void }) {
             });
           }
         });
-        window.google.accounts.id.renderButton(
-          document.getElementById('google-btn'),
-          { theme: 'outline', size: 'large', width: '100%' }
-        );
+
+        // Pastikan elemen ada sebelum render
+        const btnElement = document.getElementById('google-btn');
+        if (btnElement) {
+          window.google.accounts.id.renderButton(btnElement, {
+            theme: 'outline',
+            size: 'large',
+            width: '100%',
+            shape: 'pill'
+          });
+        }
       }
     };
 
+    loadGoogleScript();
+
     return () => {
-      document.body.removeChild(script);
+      const script = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+      if (script) document.body.removeChild(script);
     };
   }, []);
 
@@ -58,19 +69,34 @@ export default function Login({ onLogin }: { onLogin: (s: Student) => void }) {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col justify-center items-center p-4 relative">
+    <div
+      className="min-h-screen w-full flex flex-col justify-center items-center p-4 relative bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: "url('/bg.png')", // Pastikan file ini ada di folder public
+        backgroundColor: "#f3f4f6"
+      }}
+    >
+      {/* Overlay tetap di tempat */}
+      <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] z-0"></div>
+
       <div className="max-w-md w-full bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20 relative z-10">
         <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center text-white shadow-lg">
-            <BookOpen size={32} />
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg border border-gray-100 overflow-hidden p-3">
+            <img
+              src="/favicon.png"
+              alt="Logo"
+              className="w-full h-full object-contain"
+            />
           </div>
         </div>
+
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">Madrasah App</h2>
         <p className="text-center text-gray-500 mb-8">Masuk untuk mengakses materi dan tugas</p>
 
         {!googleUser ? (
-          <div className="flex flex-col items-center">
-            <div id="google-btn" className="w-full flex justify-center min-h-[40px]"></div>
+          <div className="flex flex-col items-center w-full">
+            {/* ID ini HARUS ada agar tombol Google bisa muncul */}
+            <div id="google-btn" className="w-full flex justify-center min-h-[44px]"></div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -81,26 +107,26 @@ export default function Login({ onLogin }: { onLogin: (s: Student) => void }) {
                 <p className="text-xs text-gray-500">{googleUser.email}</p>
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">NIS (Nomor Induk Siswa)</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 required
                 value={nis}
                 onChange={e => setNis(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
                 placeholder="Masukkan NIS Anda"
               />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Kelas</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 required
                 value={kelas}
                 onChange={e => setKelas(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
                 placeholder="Contoh: 10A, 11 IPA 1..."
               />
             </div>
